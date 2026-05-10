@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3307/authdb
+    username: optimusdb
+    password: Sujit@483
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+server:
+  port: 8081
+
+jwt:
+  secret: asa@T#&@#^&7847587SAD23HSG&$#^%DH8496584
+  access-token-expiration-ms: 900000                 # 15 minutes
+  refresh-token-expiration-ms: 2592000000            # 30 days
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
