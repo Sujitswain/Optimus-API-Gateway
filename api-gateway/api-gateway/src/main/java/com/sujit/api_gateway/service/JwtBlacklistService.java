@@ -30,7 +30,7 @@ public class JwtBlacklistService {
 }
 
 /*
-// SERVLET/THREAD-BASED IMPLEMENTATION (commented out for reference)
+// SERVLET/THREAD-BASED IMPLEMENTATION
 // import org.springframework.data.redis.core.StringRedisTemplate;
 //
 // @Service

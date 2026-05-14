@@ -16,10 +16,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
-/**
- * Simple routing filter to replace Spring Cloud Gateway functionality
- * Routes requests to appropriate backend services using WebFlux/reactive WebClient
- */
 @Component
 public class GatewayRoutingFilter implements WebFilter, Ordered {
 
@@ -81,7 +77,7 @@ public class GatewayRoutingFilter implements WebFilter, Ordered {
 }
 
 /*
-// PREVIOUS SERVLET/VIRTUAL-THREAD IMPLEMENTATION (commented out for reference)
+// PREVIOUS SERVLET/VIRTUAL-THREAD IMPLEMENTATION
 // import jakarta.servlet.FilterChain;
 // import jakarta.servlet.ServletException;
 // import jakarta.servlet.http.HttpServletRequest;

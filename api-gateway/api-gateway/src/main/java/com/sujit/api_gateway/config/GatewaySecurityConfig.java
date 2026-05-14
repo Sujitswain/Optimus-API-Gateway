@@ -45,7 +45,7 @@ public class GatewaySecurityConfig {
 }
 
 /*
-// SERVLET-BASED IMPLEMENTATION (commented out for reference)
+// SERVLET-BASED IMPLEMENTATION
 // import org.springframework.data.redis.connection.RedisConnectionFactory;
 // import org.springframework.data.redis.core.StringRedisTemplate;
 // import org.springframework.security.config.annotation.web.builders.HttpSecurity;
