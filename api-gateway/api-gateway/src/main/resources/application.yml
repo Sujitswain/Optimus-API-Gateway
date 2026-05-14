@@ -1,9 +1,10 @@
 spring:
   application:
     name: api-gateway
-  threads:
-    virtual:
-      enabled: true
+  # Reactive WebFlux is enabled by using spring-boot-starter-webflux.
+  # threads:
+  #   virtual:
+  #     enabled: true
   config:
     import: "optional:configserver:http://localhost:8888"
   redis:

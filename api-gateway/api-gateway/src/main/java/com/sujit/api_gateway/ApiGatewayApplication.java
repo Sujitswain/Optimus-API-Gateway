@@ -7,15 +7,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class ApiGatewayApplication {
 
 	public static void main(String[] args) {
-		// Enable virtual threads for better concurrency
-		System.setProperty("spring.threads.virtual.enabled", "true");
+		// Using WebFlux/reactive stack instead of virtual-thread servlet stack.
 		SpringApplication.run(ApiGatewayApplication.class, args);
 	}
 
 }
 
 /*
-// ORIGINAL WEBFLUX IMPLEMENTATION (commented out for reference)
-// This was using Spring Cloud Gateway with WebFlux for reactive processing
-// Now using traditional Spring Boot with virtual threads for simpler synchronous code
+// SERVLET/VIRTUAL THREAD IMPLEMENTATION
+// Previously used blocking servlet filters with virtual threads,
+// but the current implementation is reactive WebFlux with Reactor.
 */

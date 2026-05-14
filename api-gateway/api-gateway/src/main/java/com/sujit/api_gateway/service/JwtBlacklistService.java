@@ -1,7 +1,8 @@
 package com.sujit.api_gateway.service;
 
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
@@ -9,49 +10,46 @@ import java.time.Duration;
 public class JwtBlacklistService {
 
     private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
-    private final StringRedisTemplate redisTemplate;
+    private final ReactiveStringRedisTemplate redisTemplate;
 
-    public JwtBlacklistService(StringRedisTemplate redisTemplate) {
+    public JwtBlacklistService(ReactiveStringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
-    public boolean isBlacklisted(String token) {
-        // Using virtual threads - synchronous Redis operation
-        return redisTemplate.opsForValue().get(BLACKLIST_PREFIX + token) != null;
+    public Mono<Boolean> isBlacklisted(String token) {
+        return redisTemplate.opsForValue()
+                .get(BLACKLIST_PREFIX + token)
+                .map(value -> true)
+                .defaultIfEmpty(false);
     }
 
-    public boolean blacklist(String token, Duration ttl) {
-        // Using virtual threads - synchronous Redis operation
-        // Set value and expiration separately for synchronous Redis template
-        redisTemplate.opsForValue().set(BLACKLIST_PREFIX + token, "blacklisted");
-        return redisTemplate.expire(BLACKLIST_PREFIX + token, ttl);
+    public Mono<Boolean> blacklist(String token, Duration ttl) {
+        return redisTemplate.opsForValue()
+                .set(BLACKLIST_PREFIX + token, "blacklisted", ttl);
     }
 }
 
 /*
-// ORIGINAL REACTIVE IMPLEMENTATION (commented out for reference)
-// import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
-// import reactor.core.publisher.Mono;
-
+// SERVLET/THREAD-BASED IMPLEMENTATION (commented out for reference)
+// import org.springframework.data.redis.core.StringRedisTemplate;
+//
 // @Service
 // public class JwtBlacklistService {
+//
 //     private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
-//     private final ReactiveStringRedisTemplate redisTemplate;
-
-//     public JwtBlacklistService(ReactiveStringRedisTemplate redisTemplate) {
+//     private final StringRedisTemplate redisTemplate;
+//
+//     public JwtBlacklistService(StringRedisTemplate redisTemplate) {
 //         this.redisTemplate = redisTemplate;
 //     }
-
-//     public Mono<Boolean> isBlacklisted(String token) {
-//         return redisTemplate.opsForValue()
-//                 .get(BLACKLIST_PREFIX + token)
-//                 .map(value -> true)
-//                 .defaultIfEmpty(false);
+//
+//     public boolean isBlacklisted(String token) {
+//         return redisTemplate.opsForValue().get(BLACKLIST_PREFIX + token) != null;
 //     }
-
-//     public Mono<Boolean> blacklist(String token, Duration ttl) {
-//         return redisTemplate.opsForValue()
-//                 .set(BLACKLIST_PREFIX + token, "blacklisted", ttl);
+//
+//     public boolean blacklist(String token, Duration ttl) {
+//         redisTemplate.opsForValue().set(BLACKLIST_PREFIX + token, "blacklisted");
+//         return redisTemplate.expire(BLACKLIST_PREFIX + token, ttl);
 //     }
 // }
 */

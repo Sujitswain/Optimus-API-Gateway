@@ -15,10 +15,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.List;
 
+import static com.sujit.api_gateway.constants.GatewayApplicationConstants.ROLE_CLAIM;
+import static com.sujit.api_gateway.constants.GatewayApplicationConstants.USER_ID_CLAIM;
+
 @Service
 @RefreshScope
-// TODO: This service is already synchronous and would work well with virtual threads
-// Consider migrating the entire gateway to traditional Spring Boot with virtual threads
 public class JwtService {
 
     @Value("${jwt.secret}")
@@ -44,12 +45,12 @@ public class JwtService {
     }
 
     public String resolveRole(Claims claims) {
-        Object roleValue = claims.get("role");
-        return roleValue != null ? roleValue.toString() : "USER";
+        Object roleValue = claims.get(ROLE_CLAIM);
+        return roleValue != null ? roleValue.toString() : "anonymous";
     }
 
     public String resolveUserId(Claims claims) {
-        Object idValue = claims.get("userId");
+        Object idValue = claims.get(USER_ID_CLAIM);
         return idValue != null ? idValue.toString() : null;
     }
 
