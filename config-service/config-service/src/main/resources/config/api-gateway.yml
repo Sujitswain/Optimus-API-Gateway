@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: api-gateway
+
+jwt:
+  secret: "asa@T#&@#^&7847587SAD23HSG&$#^%DH8496584"
+
+gateway:
+  public-paths: /api/auth/**,/actuator/**
+  rate-limit:
+    free-per-minute: 100
+    premium-per-minute: 1000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh,prometheus

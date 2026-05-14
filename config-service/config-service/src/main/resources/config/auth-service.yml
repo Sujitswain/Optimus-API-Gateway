@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: auth-service
+
+jwt:
+  secret: "asa@T#&@#^&7847587SAD23HSG&$#^%DH8496584"
+  access-token-expiration-ms: 900000
+  refresh-token-expiration-ms: 2592000000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

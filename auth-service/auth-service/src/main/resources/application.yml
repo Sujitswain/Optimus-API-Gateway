@@ -1,4 +1,8 @@
 spring:
+  application:
+    name: auth-service
+  config:
+    import: "optional:configserver:http://localhost:8888"
   datasource:
     url: jdbc:mysql://localhost:3307/authdb
     username: optimusdb
