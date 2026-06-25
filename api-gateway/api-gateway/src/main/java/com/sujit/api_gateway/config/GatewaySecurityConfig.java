@@ -5,6 +5,7 @@ import com.sujit.api_gateway.properties.GatewayProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -20,7 +21,7 @@ public class GatewaySecurityConfig {
 
     private final JwtRateLimitFilter jwtRateLimitFilter;
 
-    public GatewaySecurityConfig(JwtRateLimitFilter jwtRateLimitFilter) {
+    public GatewaySecurityConfig(@Lazy JwtRateLimitFilter jwtRateLimitFilter) {
         this.jwtRateLimitFilter = jwtRateLimitFilter;
     }
 
