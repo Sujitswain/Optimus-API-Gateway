@@ -16,8 +16,6 @@ server:
 
 jwt:
   secret: "asa@T#&@#^&7847587SAD23HSG&$#^%DH8496584"
-  header: Authorization
-  token-prefix: Bearer
 
 gateway:
   public-paths: /api/auth/**,/actuator/**
@@ -29,7 +27,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,refresh,prometheus
+        include: health,info,refresh
   endpoint:
     health:
       show-details: always

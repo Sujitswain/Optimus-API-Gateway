@@ -25,8 +25,8 @@ public class RateLimitService {
         }
 
         int limit = Role.PREMIUM.name().equalsIgnoreCase(role)
-                ? gatewayProperties.getPremiumPerMinute()
-                : gatewayProperties.getFreePerMinute();
+                ? gatewayProperties.getRateLimit().getPremiumPerMinute()
+                : gatewayProperties.getRateLimit().getFreePerMinute();
 
         String key = "rate_limit:" + userId + ":" + normalizePath(path);
 

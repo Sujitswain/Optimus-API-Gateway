@@ -23,6 +23,7 @@ public class JwtBlacklistService {
                 .defaultIfEmpty(false);
     }
 
+    // Not used now can be used to add a token that needs to be blacklisted
     public Mono<Boolean> blacklist(String token, Duration ttl) {
         return redisTemplate.opsForValue()
                 .set(BLACKLIST_PREFIX + token, "blacklisted", ttl);

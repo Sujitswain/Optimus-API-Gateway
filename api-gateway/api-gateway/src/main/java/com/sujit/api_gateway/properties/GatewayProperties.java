@@ -15,7 +15,12 @@ import java.util.List;
 public class GatewayProperties {
 
     private List<String> publicPaths = new ArrayList<>();
-    private int freePerMinute = 100;
-    private int premiumPerMinute = 1000;
+    private RateLimitProperties rateLimit = new RateLimitProperties();
 
+    @Getter
+    @Setter
+    public static class RateLimitProperties {
+        private int freePerMinute = 100;
+        private int premiumPerMinute = 1000;
+    }
 }

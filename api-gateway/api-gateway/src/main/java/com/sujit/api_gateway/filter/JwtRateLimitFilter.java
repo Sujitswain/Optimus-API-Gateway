@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -19,11 +20,12 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
+import static com.sujit.api_gateway.constants.GatewayApplicationConstants.BEARER_PREFIX;
+
 @Component
 public class JwtRateLimitFilter implements WebFilter, Ordered {
 
     private static final Logger log = LoggerFactory.getLogger(JwtRateLimitFilter.class);
-    private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtService jwtService;
     private final JwtBlacklistService jwtBlacklistService;
@@ -54,8 +56,8 @@ public class JwtRateLimitFilter implements WebFilter, Ordered {
         }
 
         return resolveToken(exchange.getRequest())
+                .flatMap(token -> validateAndForward(exchange, chain, token))
                 .switchIfEmpty(unauthorized(exchange))
-                .flatMap(token -> Mono.defer(() -> validateAndForward(exchange, chain, token)))
                 .onErrorResume(throwable -> {
                     log.warn("JWT validation failed for request {}: {}", path, throwable.getMessage());
                     return unauthorized(exchange);
@@ -97,7 +99,7 @@ public class JwtRateLimitFilter implements WebFilter, Ordered {
                 .anyMatch(pattern -> pathMatcher.match(pattern, path));
     }
 
-    private Mono<String> resolveToken(org.springframework.http.server.reactive.ServerHttpRequest request) {
+    private Mono<String> resolveToken(ServerHttpRequest request) {
         String header = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (header == null || !header.startsWith(BEARER_PREFIX)) {
             return Mono.empty();

@@ -1,8 +1,8 @@
 package com.sujit.api_gateway.filter;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
@@ -16,10 +16,9 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
+@Slf4j
 @Component
 public class GatewayRoutingFilter implements WebFilter, Ordered {
-
-    private static final Logger log = LoggerFactory.getLogger(GatewayRoutingFilter.class);
 
     private final WebClient webClient = WebClient.builder().build();
 
@@ -72,7 +71,7 @@ public class GatewayRoutingFilter implements WebFilter, Ordered {
     private Mono<Void> forwardResponse(ClientResponse clientResponse, ServerHttpResponse response) {
         response.setStatusCode(clientResponse.statusCode());
         clientResponse.headers().asHttpHeaders().forEach((name, values) -> values.forEach(value -> response.getHeaders().add(name, value)));
-        return response.writeWith(clientResponse.bodyToFlux(org.springframework.core.io.buffer.DataBuffer.class));
+        return response.writeWith(clientResponse.bodyToFlux(DataBuffer.class));
     }
 }
 
