@@ -1,6 +1,7 @@
 package com.sujit.auth_service.security;
 
 import com.sujit.auth_service.constant.AuthServiceConstants;
+import com.sujit.auth_service.service.JwtBlacklistService;
 import com.sujit.auth_service.service.JwtService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -25,6 +26,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final JwtBlacklistService jwtBlacklistService;
     private final CustomUserDetailsService userDetailsService;
 
     @Override
@@ -39,6 +41,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith(AuthServiceConstants.BEARER_PREFIX)) {
             String token = header.substring(AuthServiceConstants.BEARER_PREFIX.length());
             try {
+                if (jwtBlacklistService.isBlacklisted(token)) {
+                    sendErrorResponse(response, AuthServiceConstants.INVALID_TOKEN_ERROR, "JWT token has been revoked");
+                    return;
+                }
                 jwtService.extractAllClaims(token);
                 if (SecurityContextHolder.getContext().getAuthentication() == null) {
                     String username = jwtService.extractUsername(token);

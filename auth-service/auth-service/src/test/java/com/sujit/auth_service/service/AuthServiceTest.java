@@ -2,9 +2,7 @@ package com.sujit.auth_service.service;
 
 import com.sujit.auth_service.dto.AuthResponse;
 import com.sujit.auth_service.dto.LoginRequest;
-import com.sujit.auth_service.dto.RefreshRequest;
 import com.sujit.auth_service.dto.RegisterRequest;
-import com.sujit.auth_service.entity.RefreshToken;
 import com.sujit.auth_service.entity.User;
 import com.sujit.auth_service.enums.Role;
 import com.sujit.auth_service.exception.BadRequestException;
@@ -40,7 +38,7 @@ class AuthServiceTest {
     private JwtService jwtService;
 
     @Mock
-    private RefreshTokenService refreshTokenService;
+    private RedisRefreshTokenService redisRefreshTokenService;
 
     @InjectMocks
     private AuthService authService;
@@ -48,7 +46,7 @@ class AuthServiceTest {
     private User testUser;
     private LoginRequest loginRequest;
     private RegisterRequest registerRequest;
-    private RefreshToken refreshToken;
+    private String refreshTokenValue;
 
     @BeforeEach
     void setUp() {
@@ -63,13 +61,7 @@ class AuthServiceTest {
 
         loginRequest = new LoginRequest("test@example.com", "testuser", "password123");
         registerRequest = new RegisterRequest("newuser", "new@example.com", "password123");
-
-        refreshToken = RefreshToken.builder()
-                .id(1L)
-                .token("refresh-token-value")
-                .user(testUser)
-                .expiry(Instant.now().plusSeconds(7 * 24 * 60 * 60))
-                .build();
+        refreshTokenValue = "refresh-token-value";
     }
 
     @Test
@@ -79,7 +71,7 @@ class AuthServiceTest {
         when(authenticationManager.authenticate(any()))
                 .thenReturn(new UsernamePasswordAuthenticationToken("test@example.com", "password123"));
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(refreshTokenService.createRefreshToken(testUser)).thenReturn(refreshToken);
+        when(redisRefreshTokenService.createRefreshToken(testUser)).thenReturn(refreshTokenValue);
         when(jwtService.generateAccessToken(testUser)).thenReturn("access-token");
         when(jwtService.getAccessTokenExpirationMs()).thenReturn(900000L);
 
@@ -89,13 +81,14 @@ class AuthServiceTest {
         // Assert
         assertThat(response).isNotNull();
         assertThat(response.accessToken()).isEqualTo("access-token");
-        assertThat(response.refreshToken()).isEqualTo("refresh-token-value");
+        assertThat(response.refreshToken()).isEqualTo(refreshTokenValue);
         assertThat(response.tokenType()).isEqualTo("Bearer");
         assertThat(response.user()).isNotNull();
         assertThat(response.user().username()).isEqualTo("testuser");
 
         verify(authenticationManager).authenticate(any());
         verify(jwtService).generateAccessToken(testUser);
+        verify(redisRefreshTokenService).createRefreshToken(testUser);
     }
 
     @Test
@@ -106,7 +99,7 @@ class AuthServiceTest {
         when(authenticationManager.authenticate(any()))
                 .thenReturn(new UsernamePasswordAuthenticationToken("testuser", "password123"));
         when(userService.findByUsername("testuser")).thenReturn(Optional.of(testUser));
-        when(refreshTokenService.createRefreshToken(testUser)).thenReturn(refreshToken);
+        when(redisRefreshTokenService.createRefreshToken(testUser)).thenReturn(refreshTokenValue);
         when(jwtService.generateAccessToken(testUser)).thenReturn("access-token");
         when(jwtService.getAccessTokenExpirationMs()).thenReturn(900000L);
 
@@ -132,7 +125,7 @@ class AuthServiceTest {
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("invalid email/username or password");
 
-        verify(refreshTokenService, never()).createRefreshToken(any());
+        verify(redisRefreshTokenService, never()).createRefreshToken(any());
     }
 
     @Test
@@ -161,7 +154,7 @@ class AuthServiceTest {
                 .build();
 
         when(userService.register(registerRequest)).thenReturn(newUser);
-        when(refreshTokenService.createRefreshToken(newUser)).thenReturn(refreshToken);
+        when(redisRefreshTokenService.createRefreshToken(newUser)).thenReturn(refreshTokenValue);
         when(jwtService.generateAccessToken(newUser)).thenReturn("access-token");
         when(jwtService.getAccessTokenExpirationMs()).thenReturn(900000L);
 
@@ -171,33 +164,26 @@ class AuthServiceTest {
         // Assert
         assertThat(response).isNotNull();
         assertThat(response.accessToken()).isEqualTo("access-token");
-        assertThat(response.refreshToken()).isEqualTo("refresh-token-value");
+        assertThat(response.refreshToken()).isEqualTo(refreshTokenValue);
         assertThat(response.user().username()).isEqualTo("newuser");
 
         verify(userService).register(registerRequest);
-        verify(refreshTokenService).createRefreshToken(newUser);
+        verify(redisRefreshTokenService).createRefreshToken(newUser);
     }
 
     @Test
     @DisplayName("Should refresh token successfully")
     void testRefreshTokenSuccess() {
         // Arrange
-        RefreshRequest refreshRequest = new RefreshRequest("refresh-token-value");
-        RefreshToken newRefreshToken = RefreshToken.builder()
-                .id(2L)
-                .token("new-refresh-token")
-                .user(testUser)
-                .expiry(Instant.now().plusSeconds(7 * 24 * 60 * 60))
-                .build();
-
-        when(refreshTokenService.findByToken("refresh-token-value")).thenReturn(refreshToken);
-        doNothing().when(refreshTokenService).verifyExpiration(refreshToken);
-        when(refreshTokenService.createRefreshToken(testUser)).thenReturn(newRefreshToken);
+        String refreshTokenValue = "refresh-token-value";
+        when(redisRefreshTokenService.resolveUserFromRefreshToken(refreshTokenValue)).thenReturn(testUser);
+        doNothing().when(redisRefreshTokenService).deleteByToken(refreshTokenValue);
+        when(redisRefreshTokenService.createRefreshToken(testUser)).thenReturn("new-refresh-token");
         when(jwtService.generateAccessToken(testUser)).thenReturn("new-access-token");
         when(jwtService.getAccessTokenExpirationMs()).thenReturn(900000L);
 
         // Act
-        AuthResponse response = authService.refreshToken(refreshRequest);
+        AuthResponse response = authService.refreshToken(refreshTokenValue);
 
         // Assert
         assertThat(response).isNotNull();
@@ -205,19 +191,19 @@ class AuthServiceTest {
         assertThat(response.refreshToken()).isEqualTo("new-refresh-token");
         assertThat(response.user()).isNull(); // User is null on refresh
 
-        verify(refreshTokenService).deleteToken(refreshToken);
-        verify(refreshTokenService).createRefreshToken(testUser);
+        verify(redisRefreshTokenService).deleteByToken(refreshTokenValue);
+        verify(redisRefreshTokenService).createRefreshToken(testUser);
     }
 
     @Test
     @DisplayName("Should throw exception when refresh token is invalid")
     void testRefreshTokenInvalid() {
         // Arrange
-        RefreshRequest refreshRequest = new RefreshRequest("invalid-token");
-        when(refreshTokenService.findByToken("invalid-token")).thenThrow(new RuntimeException("Token not found"));
+        String invalidToken = "invalid-token";
+        when(redisRefreshTokenService.resolveUserFromRefreshToken(invalidToken)).thenThrow(new RuntimeException("Token not found"));
 
         // Act & Assert
-        assertThatThrownBy(() -> authService.refreshToken(refreshRequest))
+        assertThatThrownBy(() -> authService.refreshToken(invalidToken))
                 .isInstanceOf(RuntimeException.class);
     }
 
@@ -228,7 +214,7 @@ class AuthServiceTest {
         when(authenticationManager.authenticate(any()))
                 .thenReturn(new UsernamePasswordAuthenticationToken("test@example.com", "password123"));
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(refreshTokenService.createRefreshToken(testUser)).thenReturn(refreshToken);
+        when(redisRefreshTokenService.createRefreshToken(testUser)).thenReturn(refreshTokenValue);
         when(jwtService.generateAccessToken(testUser)).thenReturn("access-token");
         when(jwtService.getAccessTokenExpirationMs()).thenReturn(900000L);
 

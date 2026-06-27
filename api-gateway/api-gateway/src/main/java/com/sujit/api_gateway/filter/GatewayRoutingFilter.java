@@ -42,7 +42,7 @@ public class GatewayRoutingFilter implements WebFilter, Ordered {
             return chain.filter(exchange);
         }
 
-        String targetUrl = targetBaseUrl + requestURI.substring(4); // Remove /api prefix
+        String targetUrl = targetBaseUrl + requestURI;
         HttpMethod method = exchange.getRequest().getMethod();
 
         WebClient.RequestBodySpec requestSpec = webClient.method(method)

@@ -78,4 +78,13 @@ public class JwtService {
     public long getRefreshTokenExpirationMs() {
         return refreshTokenExpirationMs;
     }
+
+    public long getTokenExpirationSeconds(String token) {
+        Date expiration = extractExpiration(token);
+        if (expiration == null) {
+            throw new IllegalArgumentException("Invalid token expiration");
+        }
+        long secondsLeft = expiration.toInstant().getEpochSecond() - Instant.now().getEpochSecond();
+        return Math.max(secondsLeft, 0);
+    }
 }

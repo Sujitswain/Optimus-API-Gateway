@@ -1,6 +1,12 @@
 spring:
   application:
     name: api-gateway
+  redis:
+    host: localhost
+    port: 6379
+
+server:
+  port: 8080
 
 jwt:
   secret: "asa@T#&@#^&7847587SAD23HSG&$#^%DH8496584"
@@ -15,4 +21,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,refresh,prometheus
+        include: health,info,refresh

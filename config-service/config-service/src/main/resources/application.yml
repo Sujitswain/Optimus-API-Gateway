@@ -2,8 +2,6 @@ spring:
   application:
     name: config-service
 
-  port: 8888
-
   cloud:
     config:
       server:
@@ -13,3 +11,6 @@ spring:
   profiles:
     active:
       native
+
+server:
+  port: 8888
