@@ -22,12 +22,13 @@ public class GatewayRoutingFilter implements WebFilter, Ordered {
 
     private final WebClient webClient = WebClient.builder().build();
 
-    private static final Map<String, String> ROUTES = Map.of(
+        private static final Map<String, String> ROUTES = Map.of(
             "/api/auth/", "http://localhost:8081",
             "/api/orders/", "http://localhost:8082",
             "/api/payments/", "http://localhost:8082",
-            "/api/products/", "http://localhost:8082"
-    );
+            "/api/products/", "http://localhost:8084",
+            "/api/categories/", "http://localhost:8083"
+        );
 
     @Override
     public int getOrder() {
