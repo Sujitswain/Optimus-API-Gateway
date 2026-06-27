@@ -1,29 +1,5 @@
 spring:
   application:
     name: auth-service
-  datasource:
-    url: jdbc:mysql://localhost:3307/authdb
-    username: optimusdb
-    password: Sujit@483
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-  redis:
-    host: localhost
-    port: 6379
 
-server:
-  port: 8081
 
-jwt:
-  secret: "asa@T#&@#^&7847587SAD23HSG&$#^%DH8496584"
-  access-token-expiration-ms: 900000
-  refresh-token-expiration-ms: 2592000000
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info

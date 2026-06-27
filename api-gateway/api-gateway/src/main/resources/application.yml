@@ -7,9 +7,21 @@ spring:
   #     enabled: true
   config:
     import: "optional:configserver:http://localhost:8888"
+  redis:
+    host: localhost
+    port: 6379
+
+server:
+  port: 8080
 
 jwt:
   secret: "asa@T#&@#^&7847587SAD23HSG&$#^%DH8496584"
+
+gateway:
+  public-paths: /api/auth/**,/actuator/**
+  rate-limit:
+    free-per-minute: 100
+    premium-per-minute: 1000
 
 eureka:
   client:
@@ -19,3 +31,14 @@ eureka:
     fetch-registry: true
   instance:
     prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true

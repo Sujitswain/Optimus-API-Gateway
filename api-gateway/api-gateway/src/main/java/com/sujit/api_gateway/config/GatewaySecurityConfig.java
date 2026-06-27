@@ -31,7 +31,7 @@ public class GatewaySecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers("/api/auth/**", "/actuator/**").permitAll()
+                        .pathMatchers("/", "/actuator", "/actuator/**", "/api/auth/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .addFilterAt(jwtRateLimitFilter, SecurityWebFiltersOrder.AUTHENTICATION);
