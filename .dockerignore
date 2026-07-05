@@ -1,0 +1,33 @@
+# Docker files
+Dockerfile
+docker-compose.yml
+
+# Build artifacts
+target/
+*.jar
+*.class
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Node/npm
+node_modules/
+npm-debug.log
+
+# Maven
+.m2/
