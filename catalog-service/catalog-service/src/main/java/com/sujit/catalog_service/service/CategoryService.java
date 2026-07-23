@@ -29,9 +29,17 @@ public class CategoryService {
     }
 
     public CategoryResponse create(CategoryRequest request) {
+
+        String categoryName = request.name().trim();
+
+        if (categoryRepository.existsByNameIgnoreCase(categoryName)) {
+            throw new IllegalArgumentException("Category already exists: " + categoryName);
+        }
+
         Category category = new Category();
-        category.setName(request.name());
-        category.setDescription(request.description());
+        category.setName(categoryName);
+        category.setDescription(request.description() == null ? "" : request.description().trim());
+
         return toResponse(categoryRepository.save(category));
     }
 
