@@ -1,322 +1,99 @@
-# Optimus API Gateway Platform
+# Optimus API Gateway
 
-This repository defines the full project structure for a Spring Boot / Spring Cloud Gateway API platform with distributed rate limiting, JWT authentication, dynamic configuration, observability, and a React admin UI.
+Spring Boot microservices for the Optimus platform. The gateway handles JWT authentication, request routing, Redis-backed token blacklisting, and dynamic token-bucket rate limiting.
 
-## 1. Required Services
+## Services
 
-Minimum service set:
+- `api-gateway`: authentication, authorization, routing, and rate limiting
+- `auth-service`: user authentication and JWT creation
+- `catalog-service`: catalog APIs
+- `product-service`: product APIs
+- `inventory-service`: inventory APIs
+- `order-service`: order APIs
+- `config-service`: central Spring configuration
+- `eureka_server`: service discovery
+- Redis: token blacklist, rate-limit buckets, and policy updates
 
-- `gateway-service` — main API gateway with JWT auth, rate limiting, routing, metrics, and resilience.
-- `auth-service` — login, registration, JWT generation, refresh tokens, and user management.
-- `config-server` — Spring Cloud Config server for dynamic gateway and policy configuration.
-- `admin-ui` — React-based admin dashboard for policy management and auditing.
-- `redis` — distributed rate limiting and token blacklist storage.
-- `sample-backend-service` — dummy backend for gateway routing tests.
+The PR validation service is not part of the current platform.
 
-## 2. Tech Stack
+## Local Ports
 
-| Layer | Technology |
-| --- | --- |
-| Language | Java 21 |
-| Framework | Spring Boot 3 |
-| Gateway | Spring Cloud Gateway |
-| Security | Spring Security + JWT |
-| Cache | Redis |
-| Config | Spring Cloud Config |
-| Frontend | React |
-| DB | MySQL |
-| Build Tool | Maven |
-| Container | Docker |
-| Monitoring | Micrometer |
-| Load Testing | k6 |
+| Service | Port |
+| --- | ---: |
+| Eureka | 8761 |
+| Config service | 8888 |
+| API gateway | 8080 |
+| Auth service | 8081 |
+| Catalog service | 8083 |
+| Product service | 8084 |
+| Inventory service | 8085 |
+| Order service | 8086 |
+| Redis | 6379 |
 
-> Note: This platform uses MySQL for relational storage instead of PostgreSQL.
+## Run With Docker Compose
 
-## 3. Project Architecture
+The Compose file starts Redis, Eureka, the config service, the gateway, and the business services:
 
-Client -> API Gateway -> Backend Services
-
-- Gateway performs JWT validation, rate limiting, logging, metrics, retry, and circuit breaking.
-- Gateway talks to Redis for distributed token bucket state and JWT blacklist.
-- Gateway pulls dynamic config from `config-server`.
-- Admin UI manages policies via `config-server`.
-- Auth service stores users, roles, and refresh tokens in MySQL.
-
-```
-Client
-   |
-   v
-API Gateway
-   |
-   |---- JWT Validation
-   |---- Rate Limiting
-   |---- Logging
-   |---- Metrics
-   |
-   v
-Backend Services
-
-Gateway <-----> Redis
-Gateway <-----> Config Server
-Admin UI -----> Config Server
-Auth Service --> MySQL
+```bash
+docker compose up --build
 ```
 
-## 4. Service Responsibilities
+MySQL is expected to be available locally for the services that use it. The MySQL container definition in `docker-compose.yml` is intentionally disabled.
 
-### A. `gateway-service`
-- Route external requests to backend services.
-- Validate JWT tokens and user roles.
-- Apply token bucket rate limiting per user and per API.
-- Log requests, latency, user info, and response status.
-- Export metrics via Micrometer.
-- Implement retry and circuit breaker patterns.
-- Support dynamic configuration refresh from Config Server.
+## Configuration
 
-Dependencies should include:
-- `spring-cloud-starter-gateway`
-- `spring-boot-starter-security`
-- `spring-boot-starter-data-redis-reactive`
-- `jjwt` or `jjwt-api`
-- `spring-boot-starter-actuator`
-- `micrometer-registry-prometheus`
-- `resilience4j-spring-boot3`
+The gateway imports configuration from the config service. Rate-limit defaults are in `config-service/config-service/src/main/resources/config/api-gateway.yml`:
 
-### B. `auth-service`
-- User login and registration.
-- JWT token creation and refresh token issuance.
-- Store users, roles, and refresh tokens in MySQL.
-- Expose auth endpoints for gateway clients.
-
-### C. `config-server`
-- Host dynamic gateway route and rate limit policies.
-- Provide configuration refresh with `/actuator/refresh`.
-- Store rate limits, route definitions, feature flags, and policy toggles.
-
-Example config:
 ```yaml
-rate-limit:
-  free-user:
-    requests: 100
-  premium-user:
-    requests: 1000
+gateway:
+  rate-limit:
+    free-per-minute: 100
+    premium-per-minute: 1000
+    free-capacity: 20
+    premium-capacity: 100
 ```
 
-### D. `admin-ui`
-- React dashboard for creating and editing policies.
-- Enable/disable APIs and manage roles.
-- Show rejected requests and usage statistics.
-- Push configuration updates to Config Server.
+`capacity` is the maximum burst size. `free-per-minute` and `premium-per-minute` are the token refill rates. JWT secrets and database passwords must be supplied through environment-specific configuration; do not commit real secrets.
 
-### E. `sample-backend-service`
-- Dummy service exposing:
-  - `/orders`
-  - `/payments`
-  - `/products`
-- Used to validate gateway routing and rate limiting.
+## Rate-Limit Administration
 
-## 5. Databases Required
+The gateway exposes these admin endpoints:
 
-- `Redis` for distributed rate limiting, token buckets, and JWT blacklist.
-- `MySQL` for users, API policies, audit logs, and refresh tokens.
+```text
+GET  /api/admin/rate-limit
+POST /api/admin/rate-limit
+```
 
-## 6. Redis Data Structure
+Example request:
 
-Keys:
-
-- `rate_limit:{userId}:{apiPath}`
-- `jwt:blacklist:{token}`
-
-Stored value example:
 ```json
 {
-  "tokens": 50,
-  "lastRefill": 171000000
+  "freePerMinute": 100,
+  "premiumPerMinute": 1000,
+  "freeCapacity": 20,
+  "premiumCapacity": 100
 }
 ```
 
-## 7. MySQL Tables
+The gateway updates its local policy cache and publishes changes through Redis. Admin requests require the `ADMIN` role.
 
-### `users`
-```sql
-CREATE TABLE users (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  username VARCHAR(100) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  role VARCHAR(50) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+## Gateway Routes
+
+- `/api/auth/**` -> auth service
+- `/api/orders/**` -> order service
+- `/api/payments/**` -> order service
+- `/api/products/**` -> product service
+- `/api/categories/**` -> catalog service
+
+Requests matching the configured public paths bypass JWT validation. Other requests require a valid, non-blacklisted bearer token.
+
+## Build A Service
+
+Each service is an independent Maven project:
+
+```bash
+cd api-gateway/api-gateway
+./mvnw test
 ```
 
-### `api_policies`
-```sql
-CREATE TABLE api_policies (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  api_path VARCHAR(255) NOT NULL,
-  http_method VARCHAR(10) NOT NULL,
-  role VARCHAR(50) NOT NULL,
-  requests_per_minute INT NOT NULL,
-  burst_capacity INT NOT NULL,
-  enabled BOOLEAN DEFAULT TRUE,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-```
-
-### `audit_logs`
-```sql
-CREATE TABLE audit_logs (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  user_id BIGINT,
-  api_path VARCHAR(255),
-  status_code INT,
-  latency_ms BIGINT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### `refresh_tokens`
-```sql
-CREATE TABLE refresh_tokens (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  user_id BIGINT NOT NULL,
-  token VARCHAR(500) NOT NULL,
-  expiry TIMESTAMP NOT NULL
-);
-```
-
-## 8. Rate Limiting Flow
-
-1. Request arrives at gateway.
-2. Gateway validates JWT.
-3. Extract `userId` and `role`.
-4. Build Redis key for the requested API.
-5. Check token bucket state.
-6. Allow or reject request.
-7. Forward request to backend on success.
-
-## 9. Token Bucket Algorithm
-
-Store in Redis:
-- `capacity`
-- `tokens`
-- `refill_rate`
-- `last_refill_time`
-
-Example:
-```
-capacity = 100
-tokens = 80
-refillRate = 10/sec
-```
-
-## 10. Important Gateway Filters
-
-### JWT Filter
-- validate token signature
-- verify expiry
-- extract user and role
-- check blacklist
-
-### Rate Limit Filter
-- compute request key
-- decrement bucket tokens
-- reject when exceeded
-
-### Logging Filter
-- record request metadata
-- measure latency
-- log user and status code
-
-## 11. Observability
-
-Metrics to expose:
-- `gateway_requests_total`
-- `gateway_rejected_total`
-- `redis_latency`
-- `jwt_validation_failures`
-
-Tools:
-- Micrometer
-
-## 12. Security Features
-
-- JWT signature validation
-- token expiry validation
-- role-based rate limits
-- token blacklisting in Redis
-
-Example role limits:
-- `FREE` -> 100 req/min
-- `PREMIUM` -> 1000 req/min
-- `ADMIN` -> unlimited
-
-## 13. Failure Handling
-
-### Redis Down
-- `fail open` for normal APIs
-- `fail closed` for critical APIs
-
-### Invalid JWT
-Response:
-```json
-{ "error": "INVALID_TOKEN" }
-```
-
-### Too Many Requests
-Response:
-```json
-{ "error": "RATE_LIMIT_EXCEEDED" }
-```
-HTTP status: `429`
-
-## 14. Configuration Management
-
-- Use Spring Cloud Config to manage rate limits, gateway routes, and feature flags.
-- Refresh dynamically with `/actuator/refresh`.
-
-## 15. Docker Setup
-
-Required containers:
-- `gateway-service`
-- `auth-service`
-- `config-server`
-- `redis`
-- `mysql`
-
-## 16. Load Testing
-
-Use `k6` to simulate:
-- 1000 requests/sec
-- burst traffic
-- multiple users
-- JWT-based traffic
-
-## 17. Build Order
-
-1. `gateway-service`
-2. `auth-service`
-3. Redis integration
-4. JWT validation
-5. Token bucket logic
-6. MySQL schemas
-7. Dynamic configs
-8. Admin UI
-9. Metrics
-10. Docker
-
-## 18. Folder Structure
-
-```
-api-platform/
-  gateway-service/
-  auth-service/
-  config-server/
-  sample-backend-service/
-  admin-ui/
-  docker/
-  scripts/
-```
-
-## 19. Next Step
-
-This repository now contains the blueprint and skeleton structure for an API gateway project with MySQL, Redis, Spring Cloud Gateway, Spring Boot, React, and observability tooling.
+On Windows, use `mvnw.cmd test`.
