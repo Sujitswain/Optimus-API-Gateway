@@ -22,5 +22,7 @@ public class GatewayProperties {
     public static class RateLimitProperties {
         private int freePerMinute = 100;
         private int premiumPerMinute = 1000;
+        private int freeCapacity = 20;
+        private int premiumCapacity = 100;
     }
 }

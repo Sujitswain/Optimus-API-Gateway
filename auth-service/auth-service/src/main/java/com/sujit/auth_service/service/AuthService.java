@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 
@@ -36,16 +37,17 @@ public class AuthService {
      */
     public AuthResponse login(LoginRequest request) {
         String credential = chooseLoginIdentifier(request);
+        User user;
+
         try {
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(credential, request.password()));
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(credential, request.password())
+            );
+            user = (User) authentication.getPrincipal();
         } catch (AuthenticationException ex) {
             log.warn("Failed login attempt for identifier: {}", credential);
             throw new BadRequestException("invalid email/username or password");
         }
-
-        User user = userService.findByEmail(credential)
-                .or(() -> userService.findByUsername(credential))
-                .orElseThrow(() -> new BadRequestException("invalid email/username or password"));
 
         String refreshToken = redisRefreshTokenService.createRefreshToken(user);
         String accessToken = jwtService.generateAccessToken(user);
@@ -91,7 +93,10 @@ public class AuthService {
      */
     public AuthResponse refreshToken(String refreshTokenValue) {
         User user = redisRefreshTokenService.resolveUserFromRefreshToken(refreshTokenValue);
-        redisRefreshTokenService.deleteByToken(refreshTokenValue);
+
+        // Keep a short replay-grace entry before fully invalidating the old refresh token.
+        // This avoids a logout when the same old token is submitted again from another browser tab.
+        redisRefreshTokenService.rotateToken(refreshTokenValue, user);
 
         String newRefreshToken = redisRefreshTokenService.createRefreshToken(user);
         String accessToken = jwtService.generateAccessToken(user);
@@ -102,7 +107,7 @@ public class AuthService {
                 newRefreshToken,
                 TOKEN_TYPE,
                 jwtService.getAccessTokenExpirationMs() / 1000,
-                null
+                new UserDto(user.getId(), user.getUsername(), user.getEmail(), user.getRole().name())
         );
     }
 

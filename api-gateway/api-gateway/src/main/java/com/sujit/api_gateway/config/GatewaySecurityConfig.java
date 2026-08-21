@@ -1,5 +1,6 @@
 package com.sujit.api_gateway.config;
 
+import com.sujit.api_gateway.enums.Role;
 import com.sujit.api_gateway.filter.JwtRateLimitFilter;
 import com.sujit.api_gateway.properties.GatewayProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -32,6 +33,7 @@ public class GatewaySecurityConfig {
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/", "/actuator", "/actuator/**", "/api/auth/**").permitAll()
+                        .pathMatchers("/api/admin/**").hasRole(Role.ADMIN.name())
                         .anyExchange().authenticated()
                 )
                 .addFilterAt(jwtRateLimitFilter, SecurityWebFiltersOrder.AUTHENTICATION);

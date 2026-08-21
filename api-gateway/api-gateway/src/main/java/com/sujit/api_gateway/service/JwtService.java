@@ -1,5 +1,6 @@
 package com.sujit.api_gateway.service;
 
+import com.sujit.api_gateway.enums.Tier;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -16,6 +17,7 @@ import java.security.Key;
 import java.util.List;
 
 import static com.sujit.api_gateway.constants.GatewayApplicationConstants.ROLE_CLAIM;
+import static com.sujit.api_gateway.constants.GatewayApplicationConstants.TIER_CLAIM;
 import static com.sujit.api_gateway.constants.GatewayApplicationConstants.USER_ID_CLAIM;
 
 @Service
@@ -47,6 +49,11 @@ public class JwtService {
     public String resolveRole(Claims claims) {
         Object roleValue = claims.get(ROLE_CLAIM);
         return roleValue != null ? roleValue.toString() : "anonymous";
+    }
+
+    public String resolveTier(Claims claims) {
+        Object tierValue = claims.get(TIER_CLAIM);
+        return tierValue != null ? tierValue.toString() : Tier.FREE.name();
     }
 
     public String resolveUserId(Claims claims) {

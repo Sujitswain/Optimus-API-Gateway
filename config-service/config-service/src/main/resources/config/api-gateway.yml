@@ -1,3 +1,10 @@
 spring:
   application:
     name: api-gateway
+
+gateway:
+  rate-limit:
+    free-per-minute: 100
+    premium-per-minute: 1000
+    free-capacity: 20
+    premium-capacity: 100

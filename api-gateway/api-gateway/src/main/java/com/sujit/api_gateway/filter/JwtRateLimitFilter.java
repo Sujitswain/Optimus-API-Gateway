@@ -75,9 +75,10 @@ public class JwtRateLimitFilter implements WebFilter, Ordered {
 
                     String userId = jwtService.resolveUserId(claims);
                     String role = jwtService.resolveRole(claims);
+                    String tier = jwtService.resolveTier(claims);
                     String path = exchange.getRequest().getPath().value();
 
-                    return rateLimitService.isAllowed(userId, path, role)
+                    return rateLimitService.isAllowed(userId, path, role, tier)
                             .flatMap(allowed -> allowed
                                     ? authenticateAndContinue(exchange, chain, claims, token)
                                     : tooManyRequests(exchange));
